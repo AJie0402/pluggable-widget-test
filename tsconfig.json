@@ -1,0 +1,24 @@
+{
+  "extends": "./node_modules/@mendix/pluggable-widgets-tools/configs/tsconfig.base.json",
+  "compilerOptions": {
+    "types": [
+      "big.js",
+      "mendix-client",
+      "jest",
+      "custom"
+    ],
+    "typeRoots": [
+      "./typings",
+      "./node_modules/@engalar",
+      "./node_modules/@types"
+    ],
+    "jsx": "react-jsx",
+    "jsxFactory": null,
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
