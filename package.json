@@ -1,6 +1,6 @@
 {
-  "name": "graph",
-  "widgetName": "Graph",
+  "name": "excel",
+  "widgetName": "Excel",
   "version": "1.2.0",
   "description": "My widget description",
   "packagePath": "mendixcn",

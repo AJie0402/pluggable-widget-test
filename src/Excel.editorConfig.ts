@@ -1,9 +1,9 @@
 import { StructurePreviewProps } from "./piw-utils-internal";
-import { GraphPreviewProps } from "../typings/GraphProps";
+import { ExcelPreviewProps } from "../typings/ExcelProps";
 import { Properties, transformGroupsIntoTabs } from "@mendix/pluggable-widgets-tools";
 
 export function getProperties(
-    values: GraphPreviewProps,
+    values: ExcelPreviewProps,
     defaultProperties: Properties,
     platform: "web" | "desktop"
 ): Properties {
@@ -13,7 +13,7 @@ export function getProperties(
     }
     return defaultProperties;
 }
-export function getPreview(values: GraphPreviewProps): StructurePreviewProps | null {
+export function getPreview(values: ExcelPreviewProps): StructurePreviewProps | null {
     console.log(values);
     return null;
 }
