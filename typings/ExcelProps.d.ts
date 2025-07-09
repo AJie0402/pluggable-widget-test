@@ -1,22 +1,25 @@
 /**
- * This file was generated from Graph.xml
+ * This file was generated from Excel.xml
  * WARNING: All changes made to this file will be overwritten
  * @author Mendix UI Content Team
  */
 import { CSSProperties } from "react";
+import { ListValue, ListAttributeValue } from "mendix";
 
-export interface GraphContainerProps {
+export interface ExcelContainerProps {
     name: string;
     class: string;
     style?: CSSProperties;
     tabIndex?: number;
-    sampleText: string;
+    datasource: ListValue;
+    columns: ListAttributeValue<string>;
 }
 
-export interface GraphPreviewProps {
+export interface ExcelPreviewProps {
     className: string;
     style: string;
     styleObject?: CSSProperties;
     readOnly: boolean;
-    sampleText: string;
+    datasource: {} | { type: string } | null;
+    columns: string;
 }
