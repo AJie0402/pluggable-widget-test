@@ -1,5 +1,5 @@
 /**
- * This file was generated from Excel.xml
+ * This file was generated from XSpreadsheet.xml
  * WARNING: All changes made to this file will be overwritten
  * @author Mendix UI Content Team
  */
@@ -10,7 +10,7 @@ export type BookTypeEnumEnum = "xlsx" | "xlsm" | "xlsb" | "biff8" | "numbers" | 
 
 export type TypeEnumEnum = "array" | "base64" | "binary" | "string";
 
-export interface ExcelContainerProps {
+export interface XSpreadsheetContainerProps {
     name: string;
     class: string;
     style?: CSSProperties;
@@ -28,7 +28,7 @@ export interface ExcelContainerProps {
     cellStyles: boolean;
 }
 
-export interface ExcelPreviewProps {
+export interface XSpreadsheetPreviewProps {
     className: string;
     style: string;
     styleObject?: CSSProperties;

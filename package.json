@@ -1,6 +1,6 @@
 {
-  "name": "excel",
-  "widgetName": "Excel",
+  "name": "xspreadsheet",
+  "widgetName": "XSpreadsheet",
   "version": "1.2.0",
   "description": "My widget description",
   "packagePath": "mendixcn",
@@ -8,10 +8,10 @@
   "dependencies": {
     "ahooks": "^3.3.10",
     "classnames": "^2.2.6",
-    "google-auth-library": "^10.1.0",
-    "google-spreadsheet": "^4.1.4",
-    "googleapis": "^150.0.1",
-    "xlsx": "^0.18.5"
+    "webpack": "^5.100.0",
+    "x-data-spreadsheet": "^1.1.9",
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0"
   },
   "scripts": {
     "testProject": "git clone https://gitee.com/engalar/mendix-testproject-960.git --depth=1 ./tests/testProject && shx rm -rf .\\tests\\testProject\\.git",
@@ -55,13 +55,23 @@
     "@types/react": "~17.0.1",
     "@types/react-dom": "~17.0.1",
     "@types/testing-library__jest-dom": "^5.14.1",
+    "css-loader": "^7.1.2",
     "eslint": "^8.15.0",
     "eslint-plugin-jest": "^26.5.3",
+    "less": "^4.3.0",
+    "less-loader": "^8.1.1",
     "mime": "^2.6.0",
+    "postcss": "^8.5.6",
+    "postcss-less": "^6.0.0",
+    "postcss-loader": "^8.1.1",
     "prettier": "^2.6.2",
     "rollup": "^2.75.2",
     "shx": "^0.3.4",
+    "style-loader": "^4.0.0",
     "xml2js": "^0.4.23",
     "zlib": "^1.0.5"
+  },
+  "postcss":{
+    "parser":"postcss-less"
   }
 }
