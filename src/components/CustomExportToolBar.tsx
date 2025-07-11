@@ -3,7 +3,7 @@ import { xtos } from "../xlsxspread.min";
 //import * as React  from "react";
 //import * as ReactDOM from "react-dom";
 // 定義 props 型別
-import type { BookTypeEnumEnum, TypeEnumEnum } from "../../typings/ExcelProps";
+import type { BookTypeEnumEnum, TypeEnumEnum } from "../../typings/XSpreadsheetProps";
 
 interface CustomExportToolbarProps {
     spreadsheet: { getData: () => any } | null;
@@ -16,8 +16,8 @@ interface CustomExportToolbarProps {
     isShowSave: boolean;
     isShowDownload: boolean;
     afterSaveAction?: {
-        isExecuting: boolean;
-        canExecute: boolean;
+    isExecuting: boolean;
+    canExecute: boolean;
         execute: () => void;
     };
 }

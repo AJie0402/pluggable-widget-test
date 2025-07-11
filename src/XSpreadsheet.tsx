@@ -5,7 +5,7 @@ import * as XLSX from "xlsx-js-style";
 import { stox } from "./xlsxspread.min";
 import { CustomExportToolbar } from "./components/CustomExportToolBar";
 // 定義 props 的型別介面
-    export function MendixSpreadsheet({
+    export default function MendixSpreadsheet({
         fileDocument,
         editable,
         bookSST,
