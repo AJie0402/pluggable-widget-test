@@ -15,8 +15,8 @@ interface CustomExportToolbarProps {
     isShowSave: boolean;
     isShowDownload: boolean;
     afterSaveAction?: {
-    isExecuting: boolean;
-    canExecute: boolean;
+        isExecuting: boolean;
+        canExecute: boolean;
         execute: () => void;
     };
 }
@@ -36,7 +36,9 @@ export function CustomExportToolbar({
         if (spreadsheet) {
             const new_wb = xtosExceljs(spreadsheet.getData());
             new_wb.xlsx.writeBuffer().then(buffer => {
-                const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                const blob = new Blob([buffer], {
+                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
@@ -46,17 +48,18 @@ export function CustomExportToolbar({
             });
         }
     };
-
     // 儲存 Excel 並觸發 afterSaveAction
     const handleSave = () => {
         if (spreadsheet) {
             const new_wb = xtosExceljs(spreadsheet.getData());
             new_wb.xlsx.writeBuffer().then(buffer => {
-                const fileBlob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                const fileBlob = new Blob([buffer], {
+                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                });
                 // 取得 guid
                 const urlObj = new URL(file.value.uri);
                 const params = new URLSearchParams(urlObj.search);
-                const guid = params.get('guid');
+                const guid = params.get("guid");
                 if (!guid) return;
                 // 儲存文件
                 mx.data.saveDocument(
@@ -69,7 +72,7 @@ export function CustomExportToolbar({
                             if (afterSaveAction.canExecute) {
                                 afterSaveAction.execute();
                             } else {
-                                console.log('After save action is executing.');
+                                console.log("After save action is executing.");
                             }
                         }
                     },

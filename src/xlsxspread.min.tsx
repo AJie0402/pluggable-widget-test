@@ -1,5 +1,4 @@
 import ExcelJs from "exceljs";
-
 /**
  * 將 exceljs.Workbook 轉換為 x-spreadsheet 的資料格式，並保留樣式
  */
@@ -67,7 +66,23 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         if (merges) {
             merges.forEach((_, key) => {
                 o.merges.push(key);
-                // 你可以在這裡補齊合併屬性到 cell（如有需要）
+                // 合併屬性到 cell
+                const [start, end] = key.split(":");
+                const startCol = start.replace(/[^A-Z]/g, "");
+                const startRow = parseInt(start.replace(/[^0-9]/g, ""), 10) - 1;
+                const endCol = end.replace(/[^A-Z]/g, "");
+                const endRow = parseInt(end.replace(/[^0-9]/g, ""), 10) - 1;
+
+                // 將 A~Z 轉成 0-based index
+                const colToIndex = (col: string) =>
+                    col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 65, 0);
+
+                const sCol = colToIndex(startCol);
+                const eCol = colToIndex(endCol);
+
+                if (!o.rows[startRow]) o.rows[startRow] = { cells: {} };
+                if (!o.rows[startRow].cells[sCol]) o.rows[startRow].cells[sCol] = {};
+                o.rows[startRow].cells[sCol].merge = [endRow - startRow, eCol - sCol];
             });
         }
 
@@ -75,7 +90,6 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
     });
     return out;
 }
-
 /**
  * x-spreadsheet 資料格式轉回 XLSX.WorkBook
  *
@@ -266,15 +280,24 @@ type XSheet = {
             cells: {
                 [key: number]: {
                     text?: string;
+                    styles?: number;
                     merge?: [number, number];
                 };
             };
         };
         len?: number;
     };
+    styles:{[key: number]: {[key: string]: any} };
     merges: string[];
 };
+type XSpreadsheetCell = {
+    text?: string;
+    style?: number;
+};
 
+type XSpreadsheetRow = {
+    cells: { [colIdx: number]: XSpreadsheetCell };
+};
 /**
  * 將 x-spreadsheet 的資料轉為 exceljs.Workbook
  */
@@ -283,15 +306,73 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
 
     sheets.forEach(sheet => {
         const ws = wb.addWorksheet(sheet.name || "Sheet1");
+        const sheetData = sheets[0];
+        const styles = sheetData.styles || [];
+        const getStyle = (styleId: number) => styles[styleId] || {};
         // 填入資料
-        for (let r = 0; r < (sheet.rows.len || 0); r++) {
-            const row = sheet.rows[r];
-            if (!row) continue;
-            const excelRow = ws.getRow(r + 1);
-            Object.entries(row.cells).forEach(([c, cell]) => {
-                excelRow.getCell(Number(c) + 1).value = cell.text || "";
-            });
-        }
+        Object.entries(sheetData.rows || {}).forEach(([rowIdx, rowData]) => {
+            if (rowIdx === "len") return; // 跳過 len 屬性
+            const excelRow = ws.getRow(Number(rowIdx) + 1);
+            if (typeof rowData === "object" && rowData !== null && "cells" in rowData) {
+                Object.entries((rowData as XSpreadsheetRow).cells || {}).forEach(([colIdx, cellData]) => {
+                    const cell = cellData as XSpreadsheetCell;
+                    const excelCell = excelRow.getCell(Number(colIdx) + 1);
+                    excelCell.value = cell.text ?? "";
+                    const style = getStyle(cell.style as number);
+                    if (style) {
+                        const font: Partial<ExcelJs.Font> = {};
+                        if (style.bold) font.bold = true;
+                        if (style.italic) font.italic = true;
+                        if (style.fontSize) font.size = style.fontSize;
+                        if (style.fontName) font.name = style.fontName;
+                        if (style.color) font.color = { argb: style.color.replace("#", "") };
+                        if (Object.keys(font).length) excelCell.font = font;
+    
+                        if (style.bgcolor) {
+                            excelCell.fill = {
+                                type: "pattern",
+                                pattern: "solid",
+                                fgColor: { argb: style.bgcolor.replace("#", "") }
+                            };
+                        }
+    
+                        if (style.textwrap || style.align || style.valign) {
+                            excelCell.alignment = {
+                                wrapText: !!style.textwrap,
+                                horizontal: style.align || undefined,
+                                vertical: style.valign || undefined
+                            };
+                        }
+    
+                        if (style.border) {
+                            const allowedBorderStyles = [
+                                "thin", "dotted", "dashDot", "hair", "dashDotDot", "slantDashDot", "mediumDashed",
+                                "mediumDashDotDot", "mediumDashDot", "medium", "double", "thick"
+                            ] as const;
+                            type BorderStyle = typeof allowedBorderStyles[number];
+                            const convertBorder = (b: [string, string]) => ({
+                                style: (allowedBorderStyles.includes(b[0] as BorderStyle) ? b[0] : "thin") as BorderStyle,
+                                color: { argb: (b[1] || "#000000").replace("#", "") }
+                            });
+                            excelCell.border = {
+                                top: style.border.top ? convertBorder(style.border.top) : undefined,
+                                bottom: style.border.bottom ? convertBorder(style.border.bottom) : undefined,
+                                left: style.border.left ? convertBorder(style.border.left) : undefined,
+                                right: style.border.right ? convertBorder(style.border.right) : undefined
+                            };
+                        }
+                    }
+                });
+            }
+        });
+        // for (let r = 0; r < (sheet.rows.len || 0); r++) {
+        //     const row = sheet.rows[r];
+        //     if (!row) continue;
+        //     const excelRow = ws.getRow(r + 1);
+        //     Object.entries(row.cells).forEach(([c, cell]) => {
+        //         excelRow.getCell(Number(c) + 1).value = cell.text || "";
+        //     });
+        // }
         // 合併儲存格
         if (sheet.merges) {
             sheet.merges.forEach(range => {
