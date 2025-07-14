@@ -1,8 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import { XSpreadsheetContainerProps } from "../typings/XSpreadsheetProps";
 import Spreadsheet from "x-data-spreadsheet";
-import * as XLSX from "xlsx-js-style";
-import { stox } from "./xlsxspread.min";
+import ExcelJs from "exceljs"
+import { stoxExceljs } from "./xlsxspread.min";
+import "x-data-spreadsheet/dist/xspreadsheet.css";
+//import "x-data-spreadsheet/src/xspreadsheet.css";
 import { CustomExportToolbar } from "./components/CustomExportToolBar";
 // 定義 props 的型別介面
     export default function MendixSpreadsheet({
@@ -24,7 +26,7 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
     const [availablefile, setFile] = useState<any>(fileDocument);
     // Spreadsheet 實例狀態
     const [spreadsheet, setSpreadsheet] = useState<Spreadsheet | null>(null);
-
+    
     // 當檔案變動時，載入 Excel 並初始化 Spreadsheet
     useEffect(() => {
         // 如果已經有 spreadsheet 實例，不重複載入
@@ -39,7 +41,9 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
                     const arrayBuffer = await response.arrayBuffer();
                     
                     // 使用 XLSX 解析 Excel 檔案
-                    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+                    //const workbook = XLSX.read(arrayBuffer, { type: "array" });
+                    const workbook = new ExcelJs.Workbook();
+                    await workbook.xlsx.load(arrayBuffer);
 
                     // 檢查 DOM 元素是否準備好
                     if (!el.current) {
@@ -49,6 +53,7 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
 
                     // 初始化 Spreadsheet 實例
                     const s = new Spreadsheet(el.current, {
+                        showToolbar: true,
                         view: {
                             // 設定高度為視窗高度
                             height: () => document.documentElement.clientHeight,
@@ -65,7 +70,7 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
                     });
 
                     // 將 workbook 轉換為 x-data-spreadsheet 格式並載入
-                    const data = stox(workbook);
+                    const data = stoxExceljs(workbook);
                     s.loadData(data);
 
                     // 儲存 spreadsheet 實例到狀態
