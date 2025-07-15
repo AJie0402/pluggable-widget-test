@@ -14,22 +14,49 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
             if (row.cellCount > maxCol) maxCol = row.cellCount;
         });
 
+        // 先建立所有 row
+        for (let r = 0; r < ws.rowCount; r++) {
+            o.rows[r] = { cells: {} };
+        }
+
         ws.eachRow((row, rowNumber) => {
             const cells: any = {};
             for (let col = 1; col <= maxCol; col++) {
                 const cell = row.getCell(col);
-                const cellText = cell.value ? String(cell.value) : "";
-
+                let cellText = "";
+                if (cell.value == null) {
+                    cellText = "";
+                } else if (typeof cell.value === "object") {
+                    if ("text" in cell.value) {
+                        // 超連結或富文字
+                        cellText = cell.value.text;
+                    } else if ("richText" in cell.value && Array.isArray(cell.value.richText)) {
+                        // 富文字，取出所有 text 串接
+                        cellText = cell.value.richText.map((rt: any) => rt.text).join("");
+                    } else if ("formula" in cell.value) {
+                        // 公式
+                        cellText = "=" + cell.value.formula;
+                    } else if (cell.value instanceof Date) {
+                        // 日期
+                        cellText = cell.value.toISOString().slice(0, 10);
+                    } else {
+                        // 其他物件，轉成 JSON 或空字串
+                        cellText = JSON.stringify(cell.value);
+                    }
+                } else {
+                    cellText = String(cell.value);
+                }
                 // 轉換 cell 樣式
                 const style: any = {};
-                if (cell.font?.bold) style.bold = true;
-                if (cell.font?.italic) style.italic = true;
-                if (cell.font?.size) style.fontSize = cell.font.size;
-                if (cell.font?.name) style.fontName = cell.font.name;
-                if (cell.font?.color?.argb) style.color = "#" + cell.font.color.argb.slice(-6);
+                if (cell.font?.bold) style.bold = true;//粗體
+                if (cell.font?.italic) style.italic = true;//斜體
+                if (cell.font?.size) style.fontSize = cell.font.size;//字體
+                if (cell.font?.name) style.fontName = cell.font.name;//字型
+                if (cell.font?.underline) style.underline = true; //底線
+                if (cell.font?.strike) style.strike = true; //刪除線
+                if (cell.font?.color?.argb) style.color = "#" + cell.font.color.argb.slice(-6);//字的顏色
                 if (cell.fill && cell.fill.type === "pattern" && cell.fill.fgColor?.argb) {
-                    style.bgcolor = "#" + cell.fill.fgColor.argb.slice(-6);
-                }
+                    style.bgcolor = "#" + cell.fill.fgColor.argb.slice(-6);}//字的背景色
                 if (cell.alignment?.horizontal) style.align = cell.alignment.horizontal;
                 if (cell.alignment?.vertical) style.valign = cell.alignment.vertical;
                 if (cell.alignment?.wrapText) style.textwrap = true;
@@ -59,7 +86,9 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
             }
             o.rows[rowNumber - 1] = { cells };
         });
+
         o.rows.len = ws.rowCount;
+        o.cols = { len: maxCol }; // <--- 補上這行
 
         // 合併儲存格處理
         const merges: Map<string, any> = (ws as any).merges;
@@ -82,7 +111,18 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
 
                 if (!o.rows[startRow]) o.rows[startRow] = { cells: {} };
                 if (!o.rows[startRow].cells[sCol]) o.rows[startRow].cells[sCol] = {};
-                o.rows[startRow].cells[sCol].merge = [endRow - startRow, eCol - sCol];
+                // 修正 merge 格式，rowspan/colspan 必須 +1
+                o.rows[startRow].cells[sCol].merge = [endRow - startRow + 1, eCol - sCol + 1];
+
+                // 清空合併區塊內非左上角 cell（徹底移除）
+                for (let r = startRow; r <= endRow; r++) {
+                    for (let c = sCol; c <= eCol; c++) {
+                        if (r === startRow && c === sCol) continue; // 跳過左上角
+                        if (o.rows[r] && o.rows[r].cells && o.rows[r].cells[c] !== undefined) {
+                            delete o.rows[r].cells[c];
+                        }
+                    }
+                }
             });
         }
 
@@ -317,12 +357,20 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                 Object.entries((rowData as XSpreadsheetRow).cells || {}).forEach(([colIdx, cellData]) => {
                     const cell = cellData as XSpreadsheetCell;
                     const excelCell = excelRow.getCell(Number(colIdx) + 1);
-                    excelCell.value = cell.text ?? "";
+                    if (cell.text != null && typeof cell.text === "string" && cell.text.startsWith("=")) {
+                        // 公式
+                        excelCell.value = { formula: cell.text.slice(1) };
+                    } else {
+                        // 其他一律轉字串
+                        excelCell.value = cell.text != null ? String(cell.text) : "";
+                    }
                     const style = getStyle(cell.style as number);
                     if (style) {
                         const font: Partial<ExcelJs.Font> = {};
                         if (style.bold) font.bold = true;
                         if (style.italic) font.italic = true;
+                        if (style.underline) font.underline = true;
+                        if (style.strike) font.strike = true;
                         if (style.fontSize) font.size = style.fontSize;
                         if (style.fontName) font.name = style.fontName;
                         if (style.color) font.color = { argb: style.color.replace("#", "") };
@@ -379,6 +427,19 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                 ws.mergeCells(range);
             });
         }
+
+        // 測試字型樣式
+        // ws.getCell('A1').value = "樣式測試";
+        // ws.getCell('A1').font = {
+        //     name: 'Lato',
+        //     color: { argb: 'FF00FF00' },
+        //     family: 2,
+        //     size: 20,
+        //     bold: true,
+        //     italic: true,
+        //     underline: true,
+        //     strike: true
+        // };
     });
 
     return wb;
