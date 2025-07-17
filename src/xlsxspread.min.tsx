@@ -1,124 +1,193 @@
 import ExcelJs from "exceljs";
+
 /**
  * 將 exceljs.Workbook 轉換為 x-spreadsheet 的資料格式，並保留樣式
  */
+export type XSheet = {
+    name: string;
+    rows: {
+        [key: number]: {
+            cells: {
+                [key: number]: {
+                    text?: string;
+                    styles?: number;
+                    merge?: [number, number];
+                };
+            };
+        };
+        len?: number;
+    };
+    styles:{[key: number]: {[key: string]: any} };
+    merges: string[];
+};
+export type XSpreadsheetCell = {
+    text?: string;
+    style?: number;
+};
+export type XSpreadsheetRow = {
+    cells: { [colIdx: number]: XSpreadsheetCell };
+};
+
+
 export function stoxExceljs(wb: ExcelJs.Workbook) {
     const out: any[] = [];
+  
     wb.worksheets.forEach(ws => {
-        const o: any = { name: ws.name, rows: {}, merges: [], styles: [] };
-        const styleMap = new Map<string, number>();
+        const o: any = {
+            name: ws.name,
+            rows: {} as Record<number, { cells: Record<number, any> }>,
+            merges: [] as string[],
+            styles: [] as any[],
+            cols: { len: 0, widths: [] as number[] },
+            heights: [] as number[]
+        };
 
-        // 先找出最大欄位數
+        // 取最大欄位數
         let maxCol = 0;
         ws.eachRow(row => {
             if (row.cellCount > maxCol) maxCol = row.cellCount;
         });
 
-        // 先建立所有 row
+        // 欄寬
+        for (let c = 1; c <= maxCol; c++) {
+            const col = ws.getColumn(c);
+            o.cols.widths.push(col.width || 100); // 預設100，可依需求調整
+        }
+        o.cols.len = maxCol;
+
+        // 列高
+        ws.eachRow((row, rowNumber) => {
+            o.heights[rowNumber - 1] = row.height || 24; // 預設24，可依需求調整
+        });
+
+        // 先建立所有 row (key 從0開始)
         for (let r = 0; r < ws.rowCount; r++) {
             o.rows[r] = { cells: {} };
         }
 
+        // style cache Map，避免重複樣式
+        const styleMap = new Map<string, number>();
+
         ws.eachRow((row, rowNumber) => {
-            const cells: any = {};
+            const cells: Record<number, any> = {};
+
             for (let col = 1; col <= maxCol; col++) {
-                const cell = row.getCell(col);
+                const rowcell = row.getCell(col);
                 let cellText = "";
-                if (cell.value == null) {
+
+                // 判斷儲存格值
+                if (rowcell.value == null) {
                     cellText = "";
-                } else if (typeof cell.value === "object") {
-                    if ("text" in cell.value) {
-                        // 超連結或富文字
-                        cellText = cell.value.text;
-                    } else if ("richText" in cell.value && Array.isArray(cell.value.richText)) {
-                        // 富文字，取出所有 text 串接
-                        cellText = cell.value.richText.map((rt: any) => rt.text).join("");
-                    } else if ("formula" in cell.value) {
-                        // 公式
-                        cellText = "=" + cell.value.formula;
-                    } else if (cell.value instanceof Date) {
-                        // 日期
-                        cellText = cell.value.toISOString().slice(0, 10);
+                } else if (typeof rowcell.value === "object") {
+                    if ("text" in rowcell.value && typeof (rowcell.value as any).text === "string") {
+                        cellText = (rowcell.value as any).text;
+                    } else if ("richText" in rowcell.value && Array.isArray((rowcell.value as any).richText)) {
+                        cellText = (rowcell.value as any).richText.map((rt: any) => rt.text).join("");
+                    } else if ("formula" in rowcell.value) {
+                        cellText = "=" + (rowcell.value as any).formula;
+                    } else if (rowcell.value instanceof Date) {
+                        cellText = rowcell.value.toISOString().slice(0, 10);
                     } else {
-                        // 其他物件，轉成 JSON 或空字串
-                        cellText = JSON.stringify(cell.value);
+                        try {
+                            cellText = JSON.stringify(rowcell.value);
+                        } catch {
+                            cellText = "";
+                        }
                     }
                 } else {
-                    cellText = String(cell.value);
+                    cellText = String(rowcell.value);
                 }
+
                 // 轉換 cell 樣式
-                const style: any = {};
-                if (cell.font?.bold) style.bold = true;//粗體
-                if (cell.font?.italic) style.italic = true;//斜體
-                if (cell.font?.size) style.fontSize = cell.font.size;//字體
-                if (cell.font?.name) style.fontName = cell.font.name;//字型
-                if (cell.font?.underline) style.underline = true; //底線
-                if (cell.font?.strike) style.strike = true; //刪除線
-                if (cell.font?.color?.argb) style.color = "#" + cell.font.color.argb.slice(-6);//字的顏色
-                if (cell.fill && cell.fill.type === "pattern" && cell.fill.fgColor?.argb) {
-                    style.bgcolor = "#" + cell.fill.fgColor.argb.slice(-6);}//字的背景色
-                if (cell.alignment?.horizontal) style.align = cell.alignment.horizontal;
-                if (cell.alignment?.vertical) style.valign = cell.alignment.vertical;
-                if (cell.alignment?.wrapText) style.textwrap = true;
-                if (cell.border) {
-                    style.border = {};
+                const Excelimportstyle: any = {};
+                // 字體
+                if (rowcell.font) {
+                    Excelimportstyle.font = {};
+                    if (rowcell.font.name) Excelimportstyle.font.name = rowcell.font.name;
+                    if (rowcell.font.size) Excelimportstyle.font.size = rowcell.font.size;
+                    if (rowcell.font.bold === true) Excelimportstyle.font.bold = true;
+                    if (rowcell.font.italic === true) Excelimportstyle.font.italic = true;
+                    if (rowcell.font.underline === true || typeof rowcell.font.underline === "string") Excelimportstyle.underline = true;
+                    if (rowcell.font.strike === true) Excelimportstyle.strike = true;
+                    if (rowcell.font.color?.argb) {
+                        Excelimportstyle.color = "#" + rowcell.font.color.argb.slice(-6);
+                    }
+                }
+                // 背景色
+                if (rowcell.fill && rowcell.fill.type === "pattern" && rowcell.fill.fgColor?.argb) {
+                    Excelimportstyle.bgcolor = "#" + rowcell.fill.fgColor.argb.slice(-6);
+                }
+                // 對齊
+                if (rowcell.alignment?.horizontal) Excelimportstyle.align = rowcell.alignment.horizontal;
+                if (rowcell.alignment?.vertical) Excelimportstyle.valign = rowcell.alignment.vertical;
+                if (rowcell.alignment?.wrapText) Excelimportstyle.textwrap = rowcell.alignment.wrapText;
+                // 邊框
+                if (rowcell.border) {
+                    Excelimportstyle.border = {};
                     (["top", "bottom", "left", "right"] as const).forEach(side => {
-                        const b = cell.border?.[side];
-                        if (b) style.border[side] = [b.style || "thin", b.color?.argb ? "#" + b.color.argb.slice(-6) : "#000"];
+                        const borderSide = rowcell.border![side];
+                        if (borderSide) {
+                            const style = borderSide.style || "thin";
+                            let color = "#000000";
+                            if (borderSide.color?.argb && typeof borderSide.color.argb === "string" && borderSide.color.argb.length === 8) {
+                                color = "#" + borderSide.color.argb.slice(-6);
+                            }
+                            Excelimportstyle.border[side] = [style, color];
+                        }
                     });
                 }
 
                 // 建立 style 索引
                 let styleIndex = -1;
-                const styleKey = JSON.stringify(style);
+                const styleKey = JSON.stringify(Excelimportstyle);
                 if (styleKey !== "{}") {
-                    if (!styleMap.has(styleKey)) {
+                    if (styleMap.has(styleKey)) {
+                        styleIndex = styleMap.get(styleKey)!;
+                    } else {
                         styleIndex = o.styles.length;
                         styleMap.set(styleKey, styleIndex);
-                        o.styles.push(style);
-                    } else {
-                        styleIndex = styleMap.get(styleKey)!;
+                        o.styles.push(Excelimportstyle);
                     }
                 }
 
+                // 設定 cell 內容及樣式索引
                 cells[col - 1] = { text: cellText };
-                if (styleIndex >= 0) cells[col - 1].style = styleIndex;
+                if (styleIndex >= 0) {
+                    cells[col - 1].style = styleIndex;
+                }
             }
+
             o.rows[rowNumber - 1] = { cells };
         });
-
-        o.rows.len = ws.rowCount;
-        o.cols = { len: maxCol }; // <--- 補上這行
 
         // 合併儲存格處理
         const merges: Map<string, any> = (ws as any).merges;
         if (merges) {
-            merges.forEach((_, key) => {
+            const colToIndex = (col: string) =>
+                col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 65, 0);
+
+            merges.forEach((_v, key) => {
                 o.merges.push(key);
-                // 合併屬性到 cell
+
                 const [start, end] = key.split(":");
                 const startCol = start.replace(/[^A-Z]/g, "");
                 const startRow = parseInt(start.replace(/[^0-9]/g, ""), 10) - 1;
                 const endCol = end.replace(/[^A-Z]/g, "");
                 const endRow = parseInt(end.replace(/[^0-9]/g, ""), 10) - 1;
 
-                // 將 A~Z 轉成 0-based index
-                const colToIndex = (col: string) =>
-                    col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 65, 0);
-
                 const sCol = colToIndex(startCol);
                 const eCol = colToIndex(endCol);
 
                 if (!o.rows[startRow]) o.rows[startRow] = { cells: {} };
+                if (!o.rows[startRow].cells) o.rows[startRow].cells = {};
                 if (!o.rows[startRow].cells[sCol]) o.rows[startRow].cells[sCol] = {};
-                // 修正 merge 格式，rowspan/colspan 必須 +1
+
                 o.rows[startRow].cells[sCol].merge = [endRow - startRow + 1, eCol - sCol + 1];
 
-                // 清空合併區塊內非左上角 cell（徹底移除）
                 for (let r = startRow; r <= endRow; r++) {
                     for (let c = sCol; c <= eCol; c++) {
-                        if (r === startRow && c === sCol) continue; // 跳過左上角
-                        if (o.rows[r] && o.rows[r].cells && o.rows[r].cells[c] !== undefined) {
+                        if (r === startRow && c === sCol) continue;
+                        if (o.rows[r]?.cells && c in o.rows[r].cells) {
                             delete o.rows[r].cells[c];
                         }
                     }
@@ -128,6 +197,7 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
 
         out.push(o);
     });
+  
     return out;
 }
 /**
@@ -312,32 +382,6 @@ export function exportSheet(sheet: { getData: () => XSheet[] }, _filename: strin
     const new_wb = xtosExceljs(sheet.getData());
     console.log(new_wb);
 }
-
-type XSheet = {
-    name: string;
-    rows: {
-        [key: number]: {
-            cells: {
-                [key: number]: {
-                    text?: string;
-                    styles?: number;
-                    merge?: [number, number];
-                };
-            };
-        };
-        len?: number;
-    };
-    styles:{[key: number]: {[key: string]: any} };
-    merges: string[];
-};
-type XSpreadsheetCell = {
-    text?: string;
-    style?: number;
-};
-
-type XSpreadsheetRow = {
-    cells: { [colIdx: number]: XSpreadsheetCell };
-};
 /**
  * 將 x-spreadsheet 的資料轉為 exceljs.Workbook
  */
@@ -367,12 +411,15 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                     const style = getStyle(cell.style as number);
                     if (style) {
                         const font: Partial<ExcelJs.Font> = {};
-                        if (style.bold) font.bold = true;
-                        if (style.italic) font.italic = true;
-                        if (style.underline) font.underline = true;
-                        if (style.strike) font.strike = true;
+                        if (style.bold) font.bold = style.bold;
+                        if (style.italic) font.italic = style.italic;
+                        if (style.underline) font.underline = style.underline;
+                        if (style.strike) font.strike = style.strike;
+
+
                         if (style.fontSize) font.size = style.fontSize;
                         if (style.fontName) font.name = style.fontName;
+                        
                         if (style.color) font.color = { argb: style.color.replace("#", "") };
                         if (Object.keys(font).length) excelCell.font = font;
     

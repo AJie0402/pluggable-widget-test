@@ -40,27 +40,23 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
                     const response = await fetch(availablefile.value.uri);
                     const arrayBuffer = await response.arrayBuffer();
                     
-                    // 使用 XLSX 解析 Excel 檔案
-                    //const workbook = XLSX.read(arrayBuffer, { type: "array" });
+                    // 1. 解析 Excel
                     const workbook = new ExcelJs.Workbook();
                     await workbook.xlsx.load(arrayBuffer);
 
-                    // 檢查 DOM 元素是否準備好
+                    // 2. 轉換成 spreadsheet 格式
+                    const data = stoxExceljs(workbook);
+                    // 3. 顯示在 x-data-spreadsheet
                     if (!el.current) {
                         console.warn("Spreadsheet container not ready");
                         return;
                     }
-
-                    // 初始化 Spreadsheet 實例
                     const s = new Spreadsheet(el.current, {
                         showToolbar: true,
                         view: {
-                            // 設定高度為視窗高度
                             height: () => document.documentElement.clientHeight,
-                            // 設定寬度為視窗寬度減去偏移量
                             width: () => document.documentElement.clientWidth - widthOffset
                         },
-                        // 如果是唯讀模式，關閉相關功能
                         ...(!editable && {
                             mode: "read",
                             showToolbar: false,
@@ -68,9 +64,6 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
                             showContextmenu: false
                         })
                     });
-
-                    // 將 workbook 轉換為 x-data-spreadsheet 格式並載入
-                    const data = stoxExceljs(workbook);
                     s.loadData(data);
 
                     // 儲存 spreadsheet 實例到狀態
