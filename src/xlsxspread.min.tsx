@@ -1,5 +1,4 @@
 import ExcelJs from "exceljs";
-
 /**
  * 將 exceljs.Workbook 轉換為 x-spreadsheet 的資料格式，並保留樣式
  */
@@ -28,18 +27,21 @@ export type XSpreadsheetRow = {
     cells: { [colIdx: number]: XSpreadsheetCell };
 };
 
-
+/**
+@excel 讀取出來呈現在xpreadsheets電子表單畫面上
+*/
 export function stoxExceljs(wb: ExcelJs.Workbook) {
     const out: any[] = [];
   
     wb.worksheets.forEach(ws => {
+        // 初始化單一 sheet 的資料結構
         const o: any = {
-            name: ws.name,
-            rows: {} as Record<number, { cells: Record<number, any> }>,
-            merges: [] as string[],
-            styles: [] as any[],
-            cols: { len: 0, widths: [] as number[] },
-            heights: [] as number[]
+            name: ws.name, // 工作表名稱
+            rows: {} as Record<number, { cells: Record<number, any> }>, // 所有列
+            styles: [] as any[], // 樣式陣列
+            merges: [] as string[], // 合併儲存格範圍
+            cols: { len: 0, widths: [] as number[] }, // 欄寬資訊
+            heights: [] as number[] // 列高資訊
         };
 
         // 取最大欄位數
@@ -48,14 +50,14 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
             if (row.cellCount > maxCol) maxCol = row.cellCount;
         });
 
-        // 欄寬
+        // 取得每一欄的寬度
         for (let c = 1; c <= maxCol; c++) {
             const col = ws.getColumn(c);
             o.cols.widths.push(col.width || 100); // 預設100，可依需求調整
         }
         o.cols.len = maxCol;
 
-        // 列高
+        // 取得每一列的高度
         ws.eachRow((row, rowNumber) => {
             o.heights[rowNumber - 1] = row.height || 24; // 預設24，可依需求調整
         });
@@ -68,6 +70,7 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         // style cache Map，避免重複樣式
         const styleMap = new Map<string, number>();
 
+        // 逐列逐欄處理每個 cell
         ws.eachRow((row, rowNumber) => {
             const cells: Record<number, any> = {};
 
@@ -97,7 +100,6 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
                 } else {
                     cellText = String(rowcell.value);
                 }
-
                 // 轉換 cell 樣式
                 const Excelimportstyle: any = {};
                 // 字體
@@ -105,10 +107,10 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
                     Excelimportstyle.font = {};
                     if (rowcell.font.name) Excelimportstyle.font.name = rowcell.font.name;
                     if (rowcell.font.size) Excelimportstyle.font.size = rowcell.font.size;
-                    if (rowcell.font.bold === true) Excelimportstyle.font.bold = true;
-                    if (rowcell.font.italic === true) Excelimportstyle.font.italic = true;
-                    if (rowcell.font.underline === true || typeof rowcell.font.underline === "string") Excelimportstyle.underline = true;
-                    if (rowcell.font.strike === true) Excelimportstyle.strike = true;
+                    if (rowcell.font.bold === true) Excelimportstyle.font.bold = rowcell.font.bold;
+                    if (rowcell.font.italic === true) Excelimportstyle.font.italic = rowcell.font.italic;
+                    if (rowcell.font.underline === true || typeof rowcell.font.underline === "string") Excelimportstyle.underline = rowcell.font.underline;
+                    if (rowcell.font.strike === true) Excelimportstyle.strike = rowcell.font.strike;
                     if (rowcell.font.color?.argb) {
                         Excelimportstyle.color = "#" + rowcell.font.color.argb.slice(-6);
                     }
@@ -137,7 +139,7 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
                     });
                 }
 
-                // 建立 style 索引
+                // 建立 style 索引，避免重複樣式
                 let styleIndex = -1;
                 const styleKey = JSON.stringify(Excelimportstyle);
                 if (styleKey !== "{}") {
@@ -161,29 +163,33 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         });
 
         // 合併儲存格處理
-        const merges: Map<string, any> = (ws as any).merges;
-        if (merges) {
+        if (ws.hasMerges) {
+            // 將 Excel 欄位字母轉成 0-based 索引的輔助函式
             const colToIndex = (col: string) =>
                 col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 65, 0);
 
-            merges.forEach((_v, key) => {
-                o.merges.push(key);
+            // 逐一處理每個合併範圍
+            (ws.model.merges).forEach((range: string) => {
+                o.merges.push(range); // 記錄合併範圍
+                // 取得欄位合併的起點與終點
+                const [start, end] = range.split(":");
 
-                const [start, end] = key.split(":");
-                const startCol = start.replace(/[^A-Z]/g, "");
-                const startRow = parseInt(start.replace(/[^0-9]/g, ""), 10) - 1;
-                const endCol = end.replace(/[^A-Z]/g, "");
-                const endRow = parseInt(end.replace(/[^0-9]/g, ""), 10) - 1;
+                const startCol = start.replace(/[^A-Z]/g, ""); // 起始欄位字母
+                const startRow = parseInt(start.replace(/[^0-9]/g, ""), 10) - 1; // 起始列（0-based）
+                const endCol = end.replace(/[^A-Z]/g, "");   // 結束欄位字母
+                const endRow = parseInt(end.replace(/[^0-9]/g, ""), 10) - 1;   // 結束列（0-based）
 
-                const sCol = colToIndex(startCol);
-                const eCol = colToIndex(endCol);
+                const sCol = colToIndex(startCol); // 起始欄位 index
+                const eCol = colToIndex(endCol);   // 結束欄位 index
 
-                if (!o.rows[startRow]) o.rows[startRow] = { cells: {} };
-                if (!o.rows[startRow].cells) o.rows[startRow].cells = {};
-                if (!o.rows[startRow].cells[sCol]) o.rows[startRow].cells[sCol] = {};
+                // 設定左上角 cell 的 merge 屬性，記錄合併範圍（rowspan, colspan）
+                // if (!o.rows[startRow]) o.rows[startRow] = { cells: {} };
+                // if (!o.rows[startRow].cells) o.rows[startRow].cells = {};
+                // if (!o.rows[startRow].cells[sCol]) o.rows[startRow].cells[sCol] = {};
 
-                o.rows[startRow].cells[sCol].merge = [endRow - startRow + 1, eCol - sCol + 1];
+                o.rows[startRow].cells[sCol].merge = [endRow - startRow, eCol - sCol];
 
+                // 將被合併覆蓋的 cell 移除（只保留左上角 cell）
                 for (let r = startRow; r <= endRow; r++) {
                     for (let c = sCol; c <= eCol; c++) {
                         if (r === startRow && c === sCol) continue;
@@ -194,12 +200,15 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
                 }
             });
         }
-
+        // 凍結
+        
         out.push(o);
     });
   
     return out;
 }
+
+
 /**
  * x-spreadsheet 資料格式轉回 XLSX.WorkBook
  *
@@ -376,7 +385,7 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
 // }
 
 /**
- * 將 x-spreadsheet 物件匯出為 XLSX.WorkBook 並於 console.log 顯示
+ * 將 x-spreadsheet 物件匯出為 XLSX.WorkBook
  */
 export function exportSheet(sheet: { getData: () => XSheet[] }, _filename: string) {
     const new_wb = xtosExceljs(sheet.getData());
@@ -389,9 +398,11 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
     const wb = new ExcelJs.Workbook();
 
     sheets.forEach(sheet => {
+        // 新增一個 worksheet
         const ws = wb.addWorksheet(sheet.name || "Sheet1");
         const sheetData = sheets[0];
         const styles = sheetData.styles || [];
+        // 取得 style 物件的輔助函式
         const getStyle = (styleId: number) => styles[styleId] || {};
         // 填入資料
         Object.entries(sheetData.rows || {}).forEach(([rowIdx, rowData]) => {
@@ -401,81 +412,73 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                 Object.entries((rowData as XSpreadsheetRow).cells || {}).forEach(([colIdx, cellData]) => {
                     const cell = cellData as XSpreadsheetCell;
                     const excelCell = excelRow.getCell(Number(colIdx) + 1);
+                    // 判斷是否為公式
                     if (cell.text != null && typeof cell.text === "string" && cell.text.startsWith("=")) {
-                        // 公式
                         excelCell.value = { formula: cell.text.slice(1) };
                     } else {
                         // 其他一律轉字串
                         excelCell.value = cell.text != null ? String(cell.text) : "";
                     }
+                    // 取得 style
                     const style = getStyle(cell.style as number);
-                    if (style) {
-                        const font: Partial<ExcelJs.Font> = {};
-                        if (style.bold) font.bold = style.bold;
-                        if (style.italic) font.italic = style.italic;
-                        if (style.underline) font.underline = style.underline;
-                        if (style.strike) font.strike = style.strike;
+                    // 字型樣式處理
+                    if (style.font) {
 
-
-                        if (style.fontSize) font.size = style.fontSize;
-                        if (style.fontName) font.name = style.fontName;
-                        
-                        if (style.color) font.color = { argb: style.color.replace("#", "") };
-                        if (Object.keys(font).length) excelCell.font = font;
-    
-                        if (style.bgcolor) {
-                            excelCell.fill = {
-                                type: "pattern",
-                                pattern: "solid",
-                                fgColor: { argb: style.bgcolor.replace("#", "") }
-                            };
-                        }
-    
-                        if (style.textwrap || style.align || style.valign) {
-                            excelCell.alignment = {
-                                wrapText: !!style.textwrap,
-                                horizontal: style.align || undefined,
-                                vertical: style.valign || undefined
-                            };
-                        }
-    
-                        if (style.border) {
-                            const allowedBorderStyles = [
-                                "thin", "dotted", "dashDot", "hair", "dashDotDot", "slantDashDot", "mediumDashed",
-                                "mediumDashDotDot", "mediumDashDot", "medium", "double", "thick"
-                            ] as const;
-                            type BorderStyle = typeof allowedBorderStyles[number];
-                            const convertBorder = (b: [string, string]) => ({
-                                style: (allowedBorderStyles.includes(b[0] as BorderStyle) ? b[0] : "thin") as BorderStyle,
-                                color: { argb: (b[1] || "#000000").replace("#", "") }
-                            });
-                            excelCell.border = {
-                                top: style.border.top ? convertBorder(style.border.top) : undefined,
-                                bottom: style.border.bottom ? convertBorder(style.border.bottom) : undefined,
-                                left: style.border.left ? convertBorder(style.border.left) : undefined,
-                                right: style.border.right ? convertBorder(style.border.right) : undefined
-                            };
-                        }
+                        if (style.font.bold) excelCell.font.bold = style.font.bold;
+                        if (style.font.size) excelCell.font.size = style.font.size;
+                        if (style.font.name) excelCell.font.name = style.font.name;
+                        if (style.font.italic) excelCell.font.italic = style.font.italic;
+                        if (style.font.strike) excelCell.font.strike = style.strike;
+                        if (style.font.underline) excelCell.font.underline = style.underline;
+                        if (style.font.color) excelCell.font.color = { argb: style.color.replace("#", "") };
+                        // 若有任何字型屬性才設定
+                        if (Object.keys(style.font).length) excelCell.font = style;
+                    }
+                    // 背景色
+                    if (style.bgcolor) {
+                        excelCell.fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: style.bgcolor.replace("#", "") }
+                        };
+                    }
+                    // 對齊
+                    if (style.textwrap || style.align || style.valign) {
+                        excelCell.alignment = {
+                            wrapText: !!style.textwrap,
+                            horizontal: style.align || undefined,
+                            vertical: style.valign || undefined
+                        };
+                    }
+                    // 邊框
+                    if (style.border) {
+                        const allowedBorderStyles = [
+                            "thin", "dotted", "dashDot", "hair", "dashDotDot", "slantDashDot", "mediumDashed",
+                            "mediumDashDotDot", "mediumDashDot", "medium", "double", "thick"
+                        ] as const;
+                        type BorderStyle = typeof allowedBorderStyles[number];
+                        const convertBorder = (b: [string, string]) => ({
+                            style: (allowedBorderStyles.includes(b[0] as BorderStyle) ? b[0] : "thin") as BorderStyle,
+                            color: { argb: (b[1] || "#000000").replace("#", "") }
+                        });
+                        excelCell.border = {
+                            top: style.border.top ? convertBorder(style.border.top) : undefined,
+                            bottom: style.border.bottom ? convertBorder(style.border.bottom) : undefined,
+                            left: style.border.left ? convertBorder(style.border.left) : undefined,
+                            right: style.border.right ? convertBorder(style.border.right) : undefined
+                        };
                     }
                 });
             }
         });
-        // for (let r = 0; r < (sheet.rows.len || 0); r++) {
-        //     const row = sheet.rows[r];
-        //     if (!row) continue;
-        //     const excelRow = ws.getRow(r + 1);
-        //     Object.entries(row.cells).forEach(([c, cell]) => {
-        //         excelRow.getCell(Number(c) + 1).value = cell.text || "";
-        //     });
-        // }
-        // 合併儲存格
+        // 合併儲存格處理
         if (sheet.merges) {
             sheet.merges.forEach(range => {
                 ws.mergeCells(range);
             });
         }
 
-        // 測試字型樣式
+        // 測試字型樣式（範例，實際可移除）
         // ws.getCell('A1').value = "樣式測試";
         // ws.getCell('A1').font = {
         //     name: 'Lato',
