@@ -124,17 +124,27 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
                 if (rowcell.alignment?.vertical) Excelimportstyle.valign = rowcell.alignment.vertical;
                 if (rowcell.alignment?.wrapText) Excelimportstyle.textwrap = rowcell.alignment.wrapText;
                 // 邊框
+                if (!Excelimportstyle.border) Excelimportstyle.border = {};
+                // 判斷這個 cell 是否有邊框設定
                 if (rowcell.border) {
-                    Excelimportstyle.border = {};
+                    // 針對四個方向分別處理
                     (["top", "bottom", "left", "right"] as const).forEach(side => {
-                        const borderSide = rowcell.border![side];
-                        if (borderSide) {
-                            const style = borderSide.style || "thin";
+                        // 如果該方向有設定邊框
+                        const BorderSide =  rowcell.border![side];
+                        if (BorderSide) {
+                            // 取得邊框樣式，沒有就預設 "thin"
+                            const BorderStyle = BorderSide.style || "thin";
+                            // 取得邊框顏色物件
+                            const BorderColor = BorderSide.color;
+                            // 預設顏色為黑色
                             let color = "#000000";
-                            if (borderSide.color?.argb && typeof borderSide.color.argb === "string" && borderSide.color.argb.length === 8) {
-                                color = "#" + borderSide.color.argb.slice(-6);
+                            // 如果有設定顏色，且 argb 是長度8的字串，取最後6碼轉成 #RRGGBB
+                            if (BorderColor?.argb && typeof BorderColor.argb === "string" && BorderColor.argb.length === 8) {
+                                color = "#" + BorderColor.argb.slice(-6);
                             }
-                            Excelimportstyle.border[side] = [style, color];
+                            // 將該方向的邊框樣式與顏色存到 Excelimportstyle.border
+                            // 這裡假設 Excelimportstyle.border 已經是物件
+                            Excelimportstyle.border[side] = [BorderStyle, color];
                         }
                     });
                 }
@@ -425,7 +435,7 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                     if (style.font) {
                         const ExcelExportstyle: Partial<ExcelJs.Font> = {}
                         if (style.font.bold) ExcelExportstyle.bold = style.font.bold;
-                        // 修正：正確取得 font.size 與 font.name
+                        // 正確取得 font.size 與 font.name
                         if (style.font.size) ExcelExportstyle.size = style.font.size;
                         if (style.font.name) ExcelExportstyle.name = style.font.name;
                         if (style.font.italic) ExcelExportstyle.italic = style.font.italic;
@@ -453,20 +463,32 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                     }
                     // 邊框
                     if (style.border) {
+                        // 允許的邊框樣式
                         const allowedBorderStyles = [
                             "thin", "dotted", "dashDot", "hair", "dashDotDot", "slantDashDot", "mediumDashed",
                             "mediumDashDotDot", "mediumDashDot", "medium", "double", "thick"
                         ] as const;
                         type BorderStyle = typeof allowedBorderStyles[number];
-                        const convertBorder = (b: [string, string]) => ({
-                            style: (allowedBorderStyles.includes(b[0] as BorderStyle) ? b[0] : "thin") as BorderStyle,
-                            color: { argb: (b[1] || "#000000").replace("#", "") }
-                        });
+                        // 將 [style, color] 轉換為 exceljs 的格式
+                        const convertBorder = (b?: [string, string]) => {
+                            if (!b) return undefined;
+                            const style = allowedBorderStyles.includes(b[0] as BorderStyle) ? b[0] as BorderStyle : "thin";
+                            // color 需補上 alpha 通道
+                            let argb = "FF000000"; // 預設黑色
+                            if (b[1]) {
+                                const hex = b[1].replace("#", "");
+                                if (hex.length === 6) {
+                                    argb = "FF" + hex.toUpperCase();
+                                }
+                            }
+                            return { style, color: { argb } };
+                        };
+                        // 設定四邊的邊框，若無則為 undefined
                         excelCell.border = {
-                            top: style.border.top ? convertBorder(style.border.top) : undefined,
-                            bottom: style.border.bottom ? convertBorder(style.border.bottom) : undefined,
-                            left: style.border.left ? convertBorder(style.border.left) : undefined,
-                            right: style.border.right ? convertBorder(style.border.right) : undefined
+                            top: convertBorder(style.border.top),
+                            bottom: convertBorder(style.border.bottom),
+                            left: convertBorder(style.border.left),
+                            right: convertBorder(style.border.right)
                         };
                     }
                 });
