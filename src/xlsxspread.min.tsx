@@ -170,8 +170,8 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
 
             // 逐一處理每個合併範圍
             (ws.model.merges).forEach((range: string) => {
-                o.merges.push(range); // 記錄合併範圍
-                // 取得欄位合併的起點與終點
+                o.merges.push(range);
+                //取得欄位合併 起點 & 終點
                 const [start, end] = range.split(":");
 
                 const startCol = start.replace(/[^A-Z]/g, ""); // 起始欄位字母
@@ -182,14 +182,14 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
                 const sCol = colToIndex(startCol); // 起始欄位 index
                 const eCol = colToIndex(endCol);   // 結束欄位 index
 
-                // 設定左上角 cell 的 merge 屬性，記錄合併範圍（rowspan, colspan）
+                //設定左上角 cell 的 merge 屬性
                 // if (!o.rows[startRow]) o.rows[startRow] = { cells: {} };
                 // if (!o.rows[startRow].cells) o.rows[startRow].cells = {};
                 // if (!o.rows[startRow].cells[sCol]) o.rows[startRow].cells[sCol] = {};
 
                 o.rows[startRow].cells[sCol].merge = [endRow - startRow, eCol - sCol];
 
-                // 將被合併覆蓋的 cell 移除（只保留左上角 cell）
+                //將被合併覆蓋的 cell 移除（只保留左上角 cell）
                 for (let r = startRow; r <= endRow; r++) {
                     for (let c = sCol; c <= eCol; c++) {
                         if (r === startRow && c === sCol) continue;
@@ -423,16 +423,17 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                     const style = getStyle(cell.style as number);
                     // 字型樣式處理
                     if (style.font) {
-
-                        if (style.font.bold) excelCell.font.bold = style.font.bold;
-                        if (style.font.size) excelCell.font.size = style.font.size;
-                        if (style.font.name) excelCell.font.name = style.font.name;
-                        if (style.font.italic) excelCell.font.italic = style.font.italic;
-                        if (style.font.strike) excelCell.font.strike = style.strike;
-                        if (style.font.underline) excelCell.font.underline = style.underline;
-                        if (style.font.color) excelCell.font.color = { argb: style.color.replace("#", "") };
+                        const ExcelExportstyle: Partial<ExcelJs.Font> = {}
+                        if (style.font.bold) ExcelExportstyle.bold = style.font.bold;
+                        // 修正：正確取得 font.size 與 font.name
+                        if (style.font.size) ExcelExportstyle.size = style.font.size;
+                        if (style.font.name) ExcelExportstyle.name = style.font.name;
+                        if (style.font.italic) ExcelExportstyle.italic = style.font.italic;
+                        if (style.strike) ExcelExportstyle.strike = style.strike;
+                        if (style.underline) ExcelExportstyle.underline = style.underline;
+                        if (style.color) ExcelExportstyle.color = { argb: style.color.replace("#", "") };
                         // 若有任何字型屬性才設定
-                        if (Object.keys(style.font).length) excelCell.font = style;
+                        if (Object.keys(ExcelExportstyle).length) excelCell.font = ExcelExportstyle;
                     }
                     // 背景色
                     if (style.bgcolor) {
