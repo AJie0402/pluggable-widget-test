@@ -1,37 +1,36 @@
 import { useRef, useEffect, useState } from "react";
 import { XSpreadsheetContainerProps } from "../typings/XSpreadsheetProps";
 import Spreadsheet from "x-data-spreadsheet";
-import ExcelJs from "exceljs"
+import ExcelJs from "exceljs";
 import { stoxExceljs } from "./xlsxspread.min";
 import "x-data-spreadsheet/dist/xspreadsheet.css";
-//import "x-data-spreadsheet/src/xspreadsheet.css";
+import useAllGoogleFontsWithXspread from "./GoogleFontsAPI";
 import { CustomExportToolbar } from "./components/CustomExportToolBar";
 // 定義 props 的型別介面
-    export default function MendixSpreadsheet({
-        fileDocument,
-        editable,
-        bookSST,
-        compression,
-        bookTypeEnum,
-        typeEnum,
-        cellStyles,
-        isShowSave,
-        isShowDownload,
-        afterSaveAction,
-        widthOffset
-    }: XSpreadsheetContainerProps) { 
+export default function MendixSpreadsheet({
+    fileDocument,
+    editable,
+    bookSST,
+    compression,
+    bookTypeEnum,
+    typeEnum,
+    cellStyles,
+    isShowSave,
+    isShowDownload,
+    afterSaveAction,
+    widthOffset
+}: XSpreadsheetContainerProps) {
     // Spreadsheet 容器的 DOM 參考
     const el = useRef<HTMLDivElement>(null);
     // 當前可用的檔案物件狀態
     const [availablefile, setFile] = useState<any>(fileDocument);
     // Spreadsheet 實例狀態
     const [spreadsheet, setSpreadsheet] = useState<Spreadsheet | null>(null);
-    
+    const NewbaseFonts = useAllGoogleFontsWithXspread();
     // 當檔案變動時，載入 Excel 並初始化 Spreadsheet
     useEffect(() => {
         // 如果已經有 spreadsheet 實例，不重複載入
         if (spreadsheet) return;
-        
         // 檢查檔案是否可用且有 URI
         if (availablefile && availablefile.status === "available" && availablefile.value?.uri) {
             const fetchData = async () => {
@@ -39,7 +38,7 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
                     // 下載檔案內容
                     const response = await fetch(availablefile.value.uri);
                     const arrayBuffer = await response.arrayBuffer();
-                    
+
                     // 1. 解析 Excel
                     const workbook = new ExcelJs.Workbook();
                     await workbook.xlsx.load(arrayBuffer);
@@ -47,25 +46,23 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
                     // 2. 轉換成 spreadsheet 格式
                     const data = stoxExceljs(workbook);
                     // 3. 顯示在 x-data-spreadsheet
-                    if (!el.current) {
-                        console.warn("Spreadsheet container not ready");
-                        return;
-                    }
+                    if (!el.current || spreadsheet || !NewbaseFonts.length) return;
                     const s = new Spreadsheet(el.current, {
                         showToolbar: true,
                         view: {
                             height: () => document.documentElement.clientHeight,
                             width: () => document.documentElement.clientWidth - widthOffset
                         },
-                        ...(!editable && {
-                            mode: "read",
-                            showToolbar: false,
-                            showGrid: false,
-                            showContextmenu: false
-                        })
+                        ...(!editable &&
+                            ({  
+                                mode: "read",
+                                showToolbar: false,
+                                showGrid: false,
+                                showContextmenu: false
+                            })),
+
                     });
                     s.loadData(data);
-
                     // 儲存 spreadsheet 實例到狀態
                     setSpreadsheet(s);
                 } catch (err) {
@@ -84,13 +81,16 @@ import { CustomExportToolbar } from "./components/CustomExportToolBar";
     return (
         <div>
             {/* 工具列，提供匯出/儲存等功能 */}
-            <CustomExportToolbar 
+            {/* 若有自訂 Toolbar/字型選單元件，可這樣傳遞：
+                <CustomToolbar fontList={fontList} ...其他props />
+            */}
+            <CustomExportToolbar
                 spreadsheet={spreadsheet}
                 file={availablefile}
                 bookSST={bookSST}
                 compression={compression}
-                bookType={bookTypeEnum} 
-                type={typeEnum} 
+                bookType={bookTypeEnum}
+                type={typeEnum}
                 cellStyles={cellStyles}
                 isShowSave={isShowSave && editable}
                 isShowDownload={isShowDownload}

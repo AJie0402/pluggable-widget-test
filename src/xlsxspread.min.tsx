@@ -41,7 +41,8 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
             styles: [] as any[], // 樣式陣列
             merges: [] as string[], // 合併儲存格範圍
             cols: { len: 0, widths: [] as number[] }, // 欄寬資訊
-            heights: [] as number[] // 列高資訊
+            heights: [] as number[], // 列高資訊
+            frozen:[] as any[] //凍結
         };
 
         // 取最大欄位數
@@ -211,7 +212,27 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
             });
         }
         // 凍結
-        
+        // 取得 Excel 凍結資訊，轉換為 x-spreadsheet 格式
+        if (ws.model.views) {
+            const freezeView = ws.model.views.find(v => v.state === 'frozen');
+            if (freezeView) {
+                // Excel 的 xSplit/ySplit 代表凍結的欄與列
+                // x-spreadsheet 的 freeze: { row: y, col: x }
+                const frozenSplit: any = {};
+
+                const ySplit = (freezeView as any).ySplit;
+                const xSplit = (freezeView as any).xSplit;
+                if (typeof ySplit === 'number' && ySplit > 0) {
+                    frozenSplit.row = ySplit;
+                }
+                if (typeof xSplit === 'number' && xSplit > 0) {
+                    frozenSplit.col = xSplit;
+                }
+                frozenSplit.state = 'frozen';
+                o.frozen = frozenSplit;
+            }
+            
+        }
         out.push(o);
     });
   
@@ -501,18 +522,22 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
             });
         }
 
-        // 測試字型樣式（範例，實際可移除）
-        // ws.getCell('A1').value = "樣式測試";
-        // ws.getCell('A1').font = {
-        //     name: 'Lato',
-        //     color: { argb: 'FF00FF00' },
-        //     family: 2,
-        //     size: 20,
-        //     bold: true,
-        //     italic: true,
-        //     underline: true,
-        //     strike: true
-        // };
+        //測試字型樣式（範例，實際可移除）
+        ws.getCell('A1').value = "樣式測試";
+        ws.views = [{
+            state:'frozen',
+            xSplit:2,
+        }];
+        ws.getCell('A1').font = {
+            name: 'Lato',
+            color: { argb: 'FF00FF00' },
+            family: 2,
+            size: 20,
+            bold: true,
+            italic: true,
+            underline: true,
+            strike: true,
+        };
     });
 
     return wb;
