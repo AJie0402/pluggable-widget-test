@@ -4,7 +4,7 @@ import Spreadsheet from "x-data-spreadsheet";
 import ExcelJs from "exceljs";
 import { stoxExceljs } from "./xlsxspread.min";
 import "x-data-spreadsheet/dist/xspreadsheet.css";
-import useAllGoogleFontsWithXspread from "./GoogleFontsAPI";
+import useGoogleFontsWithXspread from "./components/ToolBarFontIncrease";
 import { CustomExportToolbar } from "./components/CustomExportToolBar";
 // 定義 props 的型別介面
 export default function MendixSpreadsheet({
@@ -26,7 +26,7 @@ export default function MendixSpreadsheet({
     const [availablefile, setFile] = useState<any>(fileDocument);
     // Spreadsheet 實例狀態
     const [spreadsheet, setSpreadsheet] = useState<Spreadsheet | null>(null);
-    const NewbaseFonts = useAllGoogleFontsWithXspread();
+    const NewbaseFonts = useGoogleFontsWithXspread();
     // 當檔案變動時，載入 Excel 並初始化 Spreadsheet
     useEffect(() => {
         // 如果已經有 spreadsheet 實例，不重複載入
@@ -46,7 +46,7 @@ export default function MendixSpreadsheet({
                     // 2. 轉換成 spreadsheet 格式
                     const data = stoxExceljs(workbook);
                     // 3. 顯示在 x-data-spreadsheet
-                    if (!el.current || spreadsheet || !NewbaseFonts.length) return;
+                    if (!el.current || !NewbaseFonts.length) return;
                     const s = new Spreadsheet(el.current, {
                         showToolbar: true,
                         view: {

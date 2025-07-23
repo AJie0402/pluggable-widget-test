@@ -54,7 +54,7 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         // 取得每一欄的寬度
         for (let c = 1; c <= maxCol; c++) {
             const col = ws.getColumn(c);
-            o.cols.widths.push(col.width || 100); // 預設100，可依需求調整
+            o.cols.widths.push(col.width); // 預設100，可依需求調整
         }
         o.cols.len = maxCol;
 
