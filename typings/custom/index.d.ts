@@ -25,3 +25,10 @@ declare module "x-data-spreadsheet/src/core/font" {
       export function fonts(ary?: BaseFont[]): Record<string, BaseFont>;
       export function getFontSizePxByPt(pt: number): number;
     }
+    declare module 'x-data-spreadsheet/src/locale/en' {
+      const en: {
+        contextmenu: {
+        };
+      };
+      export default en;
+    }

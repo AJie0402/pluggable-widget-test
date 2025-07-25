@@ -213,8 +213,8 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         }
         // 凍結
         // 取得 Excel 凍結資訊，轉換為 x-spreadsheet 格式
-        if (ws.model.views) {
-            const freezeView = ws.model.views.find(v => v.state === 'frozen');
+        if (ws.views) {
+            const freezeView = ws.views.find(v => v.state === 'frozen');
             if (freezeView) {
                 // Excel 的 xSplit/ySplit 代表凍結的欄與列
                 // x-spreadsheet 的 freeze: { row: y, col: x }
@@ -523,21 +523,21 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
         }
 
         //測試字型樣式（範例，實際可移除）
-        ws.getCell('A1').value = "樣式測試";
-        ws.views = [{
-            state:'frozen',
-            xSplit:2,
-        }];
-        ws.getCell('A1').font = {
-            name: 'Lato',
-            color: { argb: 'FF00FF00' },
-            family: 2,
-            size: 20,
-            bold: true,
-            italic: true,
-            underline: true,
-            strike: true,
-        };
+        // ws.getCell('A1').value = "樣式測試";
+        // ws.views = [{
+        //     state:'frozen',
+        //     xSplit:2,
+        // }];
+        // ws.getCell('A1').font = {
+        //     name: 'Lato',
+        //     color: { argb: 'FF00FF00' },
+        //     family: 2,
+        //     size: 20,
+        //     bold: true,
+        //     italic: true,
+        //     underline: true,
+        //     strike: true,
+        // };
     });
 
     return wb;
