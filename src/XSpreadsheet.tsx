@@ -49,6 +49,20 @@ export default function MendixSpreadsheet({
                     const data = stoxExceljs(workbook);
                     // 3. 顯示在 x-data-spreadsheet
                     if (!el.current || !NewbaseFonts.length ||!NewRightMouse) return;
+                    
+                    // 設置自定義的 context menu
+                    if (typeof window !== 'undefined') {
+                        (window as any).x_spreadsheet = {
+                            ...(window as any).x_spreadsheet,
+                            $messages: {
+                                en: {
+                                    ...(window as any).x_spreadsheet?.$messages?.en,
+                                    contextmenu: NewRightMouse
+                                }
+                            }
+                        };
+                    }
+                    
                     const s = new Spreadsheet(el.current, {
                         showToolbar: true,
                         view: {
@@ -60,7 +74,7 @@ export default function MendixSpreadsheet({
                             mode: "read",
                             showToolbar: false,
                             showGrid: false,
-                            showContextmenu: false
+                            showContextmenu: true  // 改為 true 以啟用右鍵選單
                         })),
                     });
                     s.loadData(data);
