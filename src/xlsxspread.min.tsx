@@ -18,6 +18,7 @@ export type XSheet = {
     };
     styles:{[key: number]: {[key: string]: any} };
     merges: string[];
+    freeze?: string | [number, number]; // 凍結窗格設定
 };
 export type XSpreadsheetCell = {
     text?: string;
@@ -216,7 +217,15 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         ws.views.forEach(
             (view: ExcelJs.WorksheetView) => {
                 if (view.state == "frozen") {
-                    o.freeze = view.topLeftCell;
+                    // 優先使用 topLeftCell，如果沒有則根據 xSplit/ySplit 計算
+                    if (view.topLeftCell) {
+                        o.freeze = view.topLeftCell;
+                    } else if (view.xSplit !== undefined || view.ySplit !== undefined) {
+                        // 根據 xSplit/ySplit 計算凍結位置
+                        const xSplit = view.xSplit || 0;
+                        const ySplit = view.ySplit || 0;
+                        o.freeze = [ySplit, xSplit]; // [row, col] 格式
+                    }
                 }
             }
         );
@@ -507,6 +516,51 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
             sheet.merges.forEach(range => {
                 ws.mergeCells(range);
             });
+        }
+
+        // 凍結窗格處理
+        if (sheet.freeze) {
+            // 將 x-spreadsheet 的凍結格式轉換為 ExcelJS 格式
+            const freezeCell = sheet.freeze;
+            if (typeof freezeCell === 'string') {
+                // 如果是字串格式 (如 "B3")，需要解析為行列索引
+                const colToIndex = (col: string) =>
+                    col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 64, 0);
+                
+                const match = freezeCell.match(/^([A-Z]+)(\d+)$/);
+                if (match) {
+                    const colStr = match[1];
+                    const rowStr = match[2];
+                    const colIndex = colToIndex(colStr) - 1; // 轉為 0-based
+                    const rowIndex = parseInt(rowStr) - 1; // 轉為 0-based
+                    
+                    ws.views = [{
+                        state: 'frozen',
+                        xSplit: colIndex,
+                        ySplit: rowIndex,
+                        topLeftCell: freezeCell
+                    }];
+                }
+            } else if (Array.isArray(freezeCell)) {
+                // 如果是陣列格式 [row, col]
+                const [rowIndex, colIndex] = freezeCell;
+                const colToLetter = (col: number) => {
+                    let result = '';
+                    while (col >= 0) {
+                        result = String.fromCharCode(65 + (col % 26)) + result;
+                        col = Math.floor(col / 26) - 1;
+                    }
+                    return result;
+                };
+                
+                const topLeftCell = `${colToLetter(colIndex)}${rowIndex + 1}`;
+                ws.views = [{
+                    state: 'frozen',
+                    xSplit: colIndex,
+                    ySplit: rowIndex,
+                    topLeftCell: topLeftCell
+                }];
+            }
         }
 
         //測試字型樣式（範例，實際可移除）
