@@ -24,11 +24,10 @@ declare module "x-data-spreadsheet/src/core/font" {
       export const fontSizes: FontSize[];
       export function fonts(ary?: BaseFont[]): Record<string, BaseFont>;
       export function getFontSizePxByPt(pt: number): number;
-    }
-    declare module 'x-data-spreadsheet/src/locale/en' {
-      const en: {
-        contextmenu: {
-        };
-      };
-      export default en;
-    }
+}
+declare module 'x-data-spreadsheet/src/locale/en' {
+  const en: {
+    contextmenu: {};
+  };
+  export default en;
+}

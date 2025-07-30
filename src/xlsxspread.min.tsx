@@ -213,26 +213,13 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
         }
         // 凍結
         // 取得 Excel 凍結資訊，轉換為 x-spreadsheet 格式
-        if (ws.views) {
-            const freezeView = ws.views.find(v => v.state === 'frozen');
-            if (freezeView) {
-                // Excel 的 xSplit/ySplit 代表凍結的欄與列
-                // x-spreadsheet 的 freeze: { row: y, col: x }
-                const frozenSplit: any = {};
-
-                const ySplit = (freezeView as any).ySplit;
-                const xSplit = (freezeView as any).xSplit;
-                if (typeof ySplit === 'number' && ySplit > 0) {
-                    frozenSplit.row = ySplit;
+        ws.views.forEach(
+            (view: ExcelJs.WorksheetView) => {
+                if (view.state == "frozen") {
+                    o.freeze = view.topLeftCell;
                 }
-                if (typeof xSplit === 'number' && xSplit > 0) {
-                    frozenSplit.col = xSplit;
-                }
-                frozenSplit.state = 'frozen';
-                o.frozen = frozenSplit;
             }
-            
-        }
+        );
         out.push(o);
     });
   
@@ -431,7 +418,7 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
     sheets.forEach(sheet => {
         // 新增一個 worksheet
         const ws = wb.addWorksheet(sheet.name || "Sheet1");
-        const sheetData = sheets[0];
+        const sheetData = sheet;  // 使用當前迭代的 sheet，而不是第一個
         const styles = sheetData.styles || [];
         // 取得 style 物件的輔助函式
         const getStyle = (styleId: number) => styles[styleId] || {};
