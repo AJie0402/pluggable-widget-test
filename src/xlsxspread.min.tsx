@@ -31,7 +31,7 @@ export type XSpreadsheetRow = {
 /**
 @excel 讀取出來呈現在xpreadsheets電子表單畫面上
 */
-export function stoxExceljs(wb: ExcelJs.Workbook) {
+export function stoxExceljs(wb: ExcelJs.Workbook, apic: any) {
     const out: any[] = [];
   
     wb.worksheets.forEach(ws => {
@@ -43,8 +43,11 @@ export function stoxExceljs(wb: ExcelJs.Workbook) {
             merges: [] as string[], // 合併儲存格範圍
             cols: { len: 0, widths: [] as number[] }, // 欄寬資訊
             heights: [] as number[], // 列高資訊
-            frozen:[] as any[] //凍結
+            frozen:[] as any[], //凍結
+            uri: apic as any,
         };
+
+        o.uri = apic;
 
         // 取最大欄位數
         let maxCol = 0;

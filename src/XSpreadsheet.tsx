@@ -29,6 +29,9 @@ export default function MendixSpreadsheet({
     const [spreadsheet, setSpreadsheet] = useState<Spreadsheet | null>(null);
     const NewbaseFonts = useGoogleFontsWithXspread();
     const NewRightMouse = createcontextNewmenu();
+    var apic;
+
+
     // 當檔案變動時，載入 Excel 並初始化 Spreadsheet
     useEffect(() => {
         // 如果已經有 spreadsheet 實例，不重複載入
@@ -41,12 +44,14 @@ export default function MendixSpreadsheet({
                     const response = await fetch(availablefile.value.uri);
                     const arrayBuffer = await response.arrayBuffer();
 
+                    apic = availablefile.value.uri;
+
                     // 1. 解析 Excel
                     const workbook = new ExcelJs.Workbook();
                     await workbook.xlsx.load(arrayBuffer);
 
                     // 2. 轉換成 spreadsheet 格式
-                    const data = stoxExceljs(workbook);
+                    const data = stoxExceljs(workbook, apic);
                     // 3. 顯示在 x-data-spreadsheet
                     if (!el.current || !NewbaseFonts.length ||!NewRightMouse) return;
                     
@@ -77,7 +82,12 @@ export default function MendixSpreadsheet({
                             showContextmenu: true  // 改為 true 以啟用右鍵選單
                         })),
                     });
+
+                    //s.setFileUri(apic);
+                                       
                     s.loadData(data);
+                    
+                    
                     // 儲存 spreadsheet 實例到狀態
                     setSpreadsheet(s);
                 } catch (err) {
@@ -88,10 +98,14 @@ export default function MendixSpreadsheet({
         }
     }, [availablefile, spreadsheet, editable, widthOffset]);
 
-    // 當 fileDocument 變動時，更新 availablefile 狀態
+    // 當 fileDocument 變動時，更新 availablefile / uri 狀態
     useEffect(() => {
         setFile(fileDocument);
     }, [fileDocument]);
+    // useEffect(() => {
+    //     setUri(availablefile.value.uri);
+    // }, availablefile.value.uri);   
+
 
     return (
         <div>
@@ -112,7 +126,8 @@ export default function MendixSpreadsheet({
                 afterSaveAction={afterSaveAction}
             />
             {/* Spreadsheet 顯示區域 */}
-            <div id="gridctr" ref={el} />
+            <div id="gridctr" ref={el}/>
         </div>
+
     );
 }
