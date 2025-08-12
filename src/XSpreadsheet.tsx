@@ -6,7 +6,7 @@ import { stoxExceljs } from "./xlsxspread.min";
 import "x-data-spreadsheet/dist/xspreadsheet.css";
 import useGoogleFontsWithXspread from "./components/useGoogleFontsWithXspread";
 import createcontextNewmenu from "./components/createcontextNewmenu"; 
-import { CustomExportToolbar } from "./components/CustomExportToolBar";
+import { CustomExportToolbar} from "./components/CustomExportToolBar";
 // 定義 props 的型別介面
 export default function MendixSpreadsheet({
     fileDocument,
@@ -70,6 +70,26 @@ export default function MendixSpreadsheet({
                     
                     const s = new Spreadsheet(el.current, {
                         showToolbar: true,
+                        extendToolbar:{
+                            left: [
+                                {
+                                    tip: 'Save',
+                                    icon: 'save', // 這個要看 x-data-spreadsheet 支援哪些 icon
+                                    onClick: () => {
+                                        alert('你點了自訂的 Save 按鈕！');
+
+                                    }
+                                },
+                                {
+                                    tip: 'DownLoad',
+                                    icon: 'DownLoad', // 這個要看 x-data-spreadsheet 支援哪些 icon
+                                    onClick: () => {
+                                        alert('你點了自訂的 DownLoad 按鈕！');
+                                    }
+                                }
+                            ],
+                            
+                        },
                         view: {
                             height: () => document.documentElement.clientHeight,
                             width: () => document.documentElement.clientWidth - widthOffset
