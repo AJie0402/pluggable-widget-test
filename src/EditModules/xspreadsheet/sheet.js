@@ -1014,7 +1014,9 @@ export default class Sheet {
     this.el = h('div', `${cssPrefix}-sheet`);
     this.toolbar = new Toolbar(data, view.width, !showToolbar);
     this.print = new Print(data);
-    targetEl.children(this.toolbar.el, this.el, this.print.el);
+    //移至最外面
+    this.contextMenu = new ContextMenu(() => this.getRect(), !showContextmenu);
+    targetEl.children(this.toolbar.el, this.el, this.print.el, this.contextMenu.el);
     this.data = data;
     // table
     this.tableEl = h('canvas', `${cssPrefix}-table`);
@@ -1033,7 +1035,7 @@ export default class Sheet {
     // data validation
     this.modalValidation = new ModalValidation();
     // contextMenu
-    this.contextMenu = new ContextMenu(() => this.getRect(), !showContextmenu);
+    // this.contextMenu = new ContextMenu(() => this.getRect(), !showContextmenu);
     // selector
     this.selector = new Selector(data);
     this.overlayerCEl = h('div', `${cssPrefix}-overlayer-content`)
@@ -1053,7 +1055,7 @@ export default class Sheet {
       this.colResizer.el,
       this.verticalScrollbar.el,
       this.horizontalScrollbar.el,
-      this.contextMenu.el,
+      // this.contextMenu.el,
       this.modalValidation.el,
       this.sortFilter.el,
     );

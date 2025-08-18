@@ -137,7 +137,9 @@ export default class Toolbar {
 
     // Inject custom buttons from settings.extendToolbar.left (if provided)
     const extendToolbar = data.settings && data.settings.extendToolbar;
-    if (extendToolbar && Array.isArray(extendToolbar.left)) {
+
+    if (extendToolbar && Array.isArray(extendToolbar.left) && Array.isArray(extendToolbar.right)) {
+      // 左邊按鈕
       const customLeftItems = extendToolbar.left.map((btn) => {
         const el = h('div', `${cssPrefix}-toolbar-btn`)
           .on('mouseenter', (evt) => {
@@ -151,7 +153,23 @@ export default class Toolbar {
           });
         return el;
       });
-      this.items = [...customLeftItems, ...this.items];
+    
+      // 右邊按鈕
+      const customRightItems = extendToolbar.right.map((btn) => {
+        const el = h('div', `${cssPrefix}-toolbar-btn`) 
+          .on('mouseenter', (evt) => {
+            const tipText = btn.tip || '';
+            tooltip(tipText, evt.target);
+          })
+          .attr('data-tooltip', btn.tip || '')
+          .child(new Icon(btn.icon || 'more'))
+          .on('click', () => {
+            if (typeof btn.onClick === 'function') btn.onClick();
+          });
+        return el;
+      });
+    
+      this.items = [...customLeftItems, ...this.items, ...customRightItems];
     }
 
     this.el = h('div', `${cssPrefix}-toolbar`);

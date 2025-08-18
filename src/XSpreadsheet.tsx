@@ -27,6 +27,7 @@ export default function MendixSpreadsheet({
     const [availablefile, setFile] = useState<any>(fileDocument);
     // Spreadsheet 實例狀態
     const [spreadsheet, setSpreadsheet] = useState<Spreadsheet | null>(null);
+    
     const NewbaseFonts = useGoogleFontsWithXspread();
     const NewRightMouse = createcontextNewmenu();
     var apic;
@@ -76,7 +77,7 @@ export default function MendixSpreadsheet({
                                     tip: 'Save',
                                     icon: 'save', // 這個要看 x-data-spreadsheet 支援哪些 icon
                                     onClick: () => {
-                                        alert('你點了自訂的 Save 按鈕！');
+                                        alert('你點了Save 按鈕！');
 
                                     }
                                 },
@@ -84,10 +85,27 @@ export default function MendixSpreadsheet({
                                     tip: 'DownLoad',
                                     icon: 'DownLoad', // 這個要看 x-data-spreadsheet 支援哪些 icon
                                     onClick: () => {
-                                        alert('你點了自訂的 DownLoad 按鈕！');
+                                        alert('你點了DownLoad 按鈕！');
                                     }
                                 }
                             ],
+
+                            right: [
+                                {
+                                    tip: 'UpdateLoad',
+                                    icon: 'UpadeLoad',
+                                    onClick: () =>{
+                                        alert('你點了上傳paf');
+                                    }
+                                },
+                                {
+                                    tip: 'Percent',
+                                    icon: 'Percent',
+                                    onClick: () =>{
+                                        alert('你點了百分比');
+                                    }
+                                }
+                            ]
                             
                         },
                         view: {
