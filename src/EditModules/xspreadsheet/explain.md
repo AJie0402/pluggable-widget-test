@@ -3,6 +3,7 @@ helper.js 運算子運算判斷
 --------------------------
 sheet.js 新增撈取參數 && Guid 導入mendix action 
 index.js 新增btn格式 會需要至 index.d.ts 模組宣告 
+contextmenu.js 設定右鍵時選單不要跳動 
 
 格式新增 ：
 說明: 是一個陣列 , 新增位置 , title , icon , 以及function

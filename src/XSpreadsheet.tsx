@@ -27,9 +27,9 @@ export default function MendixSpreadsheet({
     const [availablefile, setFile] = useState<any>(fileDocument);
     // Spreadsheet 實例狀態
     const [spreadsheet, setSpreadsheet] = useState<Spreadsheet | null>(null);
-    
     const NewbaseFonts = useGoogleFontsWithXspread();
     const NewRightMouse = createcontextNewmenu();
+    
     var apic;
 
 
