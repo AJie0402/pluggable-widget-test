@@ -1016,7 +1016,7 @@ export default class Sheet {
     this.print = new Print(data);
     //移至最外面
     this.contextMenu = new ContextMenu(() => this.getRect(), !showContextmenu);
-    targetEl.children(this.toolbar.el, this.el, this.print.el, this.contextMenu.el);
+    targetEl.children(this.toolbar.el, this.el, this.print.el);
     this.data = data;
     // table
     this.tableEl = h('canvas', `${cssPrefix}-table`);

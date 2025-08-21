@@ -520,51 +520,83 @@ export function xtosExceljs(sheets: XSheet[]): ExcelJs.Workbook {
                 ws.mergeCells(range);
             });
         }
-
         // 凍結窗格處理
-        if (sheet.freeze) {
+        if (sheet.freeze && typeof sheet.freeze ==='string' && sheet.freeze !== 'A1') {
+            
             // 將 x-spreadsheet 的凍結格式轉換為 ExcelJS 格式
-            const freezeCell = sheet.freeze;
-            if (typeof freezeCell === 'string') {
-                // 如果是字串格式 (如 "B3")，需要解析為行列索引
-                const colToIndex = (col: string) =>
-                    col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 64, 0);
-                
+                const freezeCell = sheet.freeze;
                 const match = freezeCell.match(/^([A-Z]+)(\d+)$/);
-                if (match) {
-                    const colStr = match[1];
-                    const rowStr = match[2];
-                    const colIndex = colToIndex(colStr) - 1; // 轉為 0-based
-                    const rowIndex = parseInt(rowStr) - 1; // 轉為 0-based
-                    
+                if (match){
+                const colToIndex = (col: string) =>
+                col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 64, 0);
+                const xstr = colToIndex(match[1]);
+                const ystr = Number(match[2]);
+                // console.error(""xstr,ystr);
+                //     const xstr = match[1] //英文字母(橫軸);
+                //     const ystr = match[2] //數字(縱軸);
+                // console.error(xstr,ystr);
+
+
+                
                     ws.views = [{
                         state: 'frozen',
-                        xSplit: colIndex,
-                        ySplit: rowIndex,
-                        topLeftCell: freezeCell
+                        xSplit: xstr - 1,
+                        ySplit: ystr,
                     }];
-                }
-            } else if (Array.isArray(freezeCell)) {
-                // 如果是陣列格式 [row, col]
-                const [rowIndex, colIndex] = freezeCell;
-                const colToLetter = (col: number) => {
-                    let result = '';
-                    while (col >= 0) {
-                        result = String.fromCharCode(65 + (col % 26)) + result;
-                        col = Math.floor(col / 26) - 1;
-                    }
-                    return result;
-                };
                 
-                const topLeftCell = `${colToLetter(colIndex)}${rowIndex + 1}`;
-                ws.views = [{
-                    state: 'frozen',
-                    xSplit: colIndex,
-                    ySplit: rowIndex,
-                    topLeftCell: topLeftCell
-                }];
-            }
+                    
+                }
+        }else {
+            ws.views = [{
+                state: 'normal'
+               
+            }];
+
         }
+        // 凍結窗格處理
+        // if (sheet.freeze) {
+        //     // 將 x-spreadsheet 的凍結格式轉換為 ExcelJS 格式
+        //     const freezeCell = sheet.freeze;
+        //     if (typeof freezeCell === 'string') {
+        //         // 如果是字串格式 (如 "B3")，需要解析為行列索引
+        //         const colToIndex = (col: string) =>
+        //             col.split("").reduce((r, c) => r * 26 + c.charCodeAt(0) - 64, 0);
+                
+        //         const match = freezeCell.match(/^([A-Z]+)(\d+)$/);
+        //         if (match) {
+        //             const colStr = match[1];
+        //             const rowStr = match[2];
+        //             const colIndex = colToIndex(colStr) - 1; // 轉為 0-based
+        //             const rowIndex = parseInt(rowStr) - 1; // 轉為 0-based
+                    
+        //             ws.views = [{
+        //                 state: 'frozen',
+        //                 xSplit: colIndex,
+        //                 ySplit: rowIndex,
+        //                 topLeftCell: freezeCell
+        //             }];
+        //         }
+        //     } else if (Array.isArray(freezeCell)) {
+        //         // 如果是陣列格式 [row, col]
+        //         const [rowIndex, colIndex] = freezeCell;
+        //         const colToLetter = (col: number) => {
+        //             let result = '';
+        //             while (col >= 0) {
+        //                 result = String.fromCharCode(65 + (col % 26)) + result;
+        //                 col = Math.floor(col / 26) - 1;
+        //             }
+        //             return result;
+        //         };
+                
+        //         const topLeftCell = `${colToLetter(colIndex)}${rowIndex + 1}`;
+        //         ws.views = [{
+        //             state: 'frozen',
+        //             xSplit: colIndex,
+        //             ySplit: rowIndex,
+        //             topLeftCell: topLeftCell
+        //         }];
+        //     }
+        // }
 
         //測試字型樣式（範例，實際可移除）
         // ws.getCell('A1').value = "樣式測試";

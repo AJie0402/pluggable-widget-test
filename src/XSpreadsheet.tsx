@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { XSpreadsheetContainerProps } from "../typings/XSpreadsheetProps";
 import Spreadsheet from "x-data-spreadsheet";
 import ExcelJs from "exceljs";
-import { stoxExceljs } from "./xlsxspread.min";
+import { stoxExceljs, xtosExceljs } from "./xlsxspread.min";
 import "x-data-spreadsheet/dist/xspreadsheet.css";
 import useGoogleFontsWithXspread from "./components/useGoogleFontsWithXspread";
 import createcontextNewmenu from "./components/createcontextNewmenu"; 
@@ -77,7 +77,38 @@ export default function MendixSpreadsheet({
                                     tip: 'Save',
                                     icon: 'save', // 這個要看 x-data-spreadsheet 支援哪些 icon
                                     onClick: () => {
-                                        alert('你點了Save 按鈕！');
+                                        if (s) {
+                                            const new_wb = xtosExceljs((s as any).getData());
+                                            new_wb.xlsx.writeBuffer().then(buffer => {
+                                                const fileBlob = new Blob([buffer], {
+                                                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                                });
+                                                // 取得 guid
+                                                const urlObj = new URL(availablefile.value.uri);
+                                                const params = new URLSearchParams(urlObj.search);
+                                                const guid = params.get("guid");
+                                                if (!guid) return;
+                                                // 儲存文件
+                                                mx.data.saveDocument(
+                                                    guid,
+                                                    availablefile.value.name,
+                                                    {},
+                                                    fileBlob,
+                                                    function () {
+                                                        if (afterSaveAction && !afterSaveAction.isExecuting) {
+                                                            if (afterSaveAction.canExecute) {
+                                                                afterSaveAction.execute();
+                                                            } else {
+                                                                console.log("After save action is executing.");
+                                                            }
+                                                        }
+                                                    },
+                                                    function (e) {
+                                                        console.error(e);
+                                                    }
+                                                );
+                                            });
+                                        }
 
                                     }
                                 },
@@ -85,7 +116,20 @@ export default function MendixSpreadsheet({
                                     tip: 'DownLoad',
                                     icon: 'DownLoad', // 這個要看 x-data-spreadsheet 支援哪些 icon
                                     onClick: () => {
-                                        alert('你點了DownLoad 按鈕！');
+                                        if (s){
+                                            const new_wb = xtosExceljs((s as any).getData());
+                                            new_wb.xlsx.writeBuffer().then(buffer =>{
+                                                const blob = new Blob([buffer],{
+                                                    type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                                });
+                                                const url = window.URL.createObjectURL(blob);
+                                                const a = document.createElement("a");
+                                                a.href = url;
+                                                a.download = availablefile.value.name;
+                                                a.click();
+                                                window.URL.revokeObjectURL(url);
+                                            })
+                                        }
                                     }
                                 }
                             ],
@@ -95,7 +139,58 @@ export default function MendixSpreadsheet({
                                     tip: 'UpdateLoad',
                                     icon: 'UpadeLoad',
                                     onClick: () =>{
-                                        alert('你點了上傳paf');
+                                        //抓取電子表單欄位
+                                        const { ri, ci } = (s as any).sheet.data.selector; //ri and ci 
+                                        //取得欄位中值
+                                        const cell = (s as any).sheet.data.getCell(ri, ci);
+                                        //把值撈出來
+                                        const selectedText = (cell?.text ?? '').toString();
+
+                                        //取得guid
+                                        const fileUrl = new URL(availablefile.value.uri);
+                                        const fileParams = new URLSearchParams(fileUrl.search);
+                                        const fileGuid = fileParams.get('guid');
+                                        if (!fileGuid) {
+                                            console.error("Missing guid in file URL");
+                                            return;
+                                        }
+
+
+
+                                        if(typeof mx !== 'undefined' && mx.data && mx.data.create ){
+                                            mx.data.create({
+                                                entity: "ExcelImporter.TemplateDocument",
+                                                callback: function(obj) {
+                                                    obj.set("tempValue",selectedText);
+                                                    // 保存實體
+                                                    mx.data.commit({
+                                                      mxobj: obj, // 傳遞要保存的對象
+                                                      callback: function() {
+                                                        // 實體調用 action
+                                                        mx.data.action({
+                                                        params: {
+                                                            applyto: "selection",
+                                                            actionname: "LaboratoryManagement.ACT_CreateSelectorValue",
+                                                            guids: [obj.getGuid(), fileGuid] // 傳遞實體GUID
+                                                        },
+                                                        // callback: function(actionResult) {
+                                                        //   window.alert("Action 執行成功", actionResult);
+                                                        // },
+                                                        // error: function(actionError) {
+                                                        //   window.alert("Action 執行失敗:", actionError.message);
+                                                        // }
+                                                        });
+                                                      }
+                                                        // error: function(saveError) {
+                                                        //   window.alert("實體保存失敗:", saveError.message);
+                                                        // }
+                                                    });
+                                                },
+                                                error: function (error) {
+                                                    console.error("無法建立",error.message);
+                                                },
+                                            });
+                                        }
                                     }
                                 },
                                 {
