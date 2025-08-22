@@ -175,6 +175,7 @@ export function stoxExceljs(wb: ExcelJs.Workbook, apic: any) {
             }
 
             o.rows[rowNumber - 1] = { cells };
+            o.rows[rowNumber - 1].height  =  o.heights[rowNumber - 1];
         });
 
         // 合併儲存格處理

@@ -114,7 +114,7 @@ export default function MendixSpreadsheet({
                                 },
                                 {
                                     tip: 'DownLoad',
-                                    icon: 'DownLoad', // 這個要看 x-data-spreadsheet 支援哪些 icon
+                                    icon: 'download', // 這個要看 x-data-spreadsheet 支援哪些 icon
                                     onClick: () => {
                                         if (s){
                                             const new_wb = xtosExceljs((s as any).getData());
@@ -137,7 +137,7 @@ export default function MendixSpreadsheet({
                             right: [
                                 {
                                     tip: 'UpdateLoad',
-                                    icon: 'UpadeLoad',
+                                    icon: 'updateload',
                                     onClick: () =>{
                                         //抓取電子表單欄位
                                         const { ri, ci } = (s as any).sheet.data.selector; //ri and ci 
@@ -195,7 +195,7 @@ export default function MendixSpreadsheet({
                                 },
                                 {
                                     tip: 'Percent',
-                                    icon: 'Percent',
+                                    icon: 'percent',
                                     onClick: () =>{
                                         alert('你點了百分比');
                                     }

@@ -18,7 +18,7 @@ export type StructurePreviewProps =
 export type ImageProps = BaseProps & {
     type: "Image";
     document?: string; // svg image
-    data?: string; // base64 image. Will only be read if no svg image is passed
+    data?: string; // base64 image. Will only be read if no  image is passed
     width?: number; // sets a fixed maximum width
     height?: number; // sets a fixed maximum height
 };
